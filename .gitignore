@@ -1,0 +1,7 @@
+*.exe
+*.ilk
+*.pdb
+*.dll
+.idea
+.vscode
+cmake-build-debug
