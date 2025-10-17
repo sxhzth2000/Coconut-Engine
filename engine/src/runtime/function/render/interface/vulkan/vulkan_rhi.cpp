@@ -628,6 +628,7 @@ namespace Coconut
 
     void VulkanRHI::createDepthImageAndView()
     {
+        LOG_INFO("");
         vk::Extent3D depthExtent;
 
         depthExtent.width  = m_swapchain_extent.width;
@@ -676,7 +677,7 @@ namespace Coconut
     }
     void VulkanRHI::createAssetAllocator()
     {
-
+        LOG_INFO("");
         VmaVulkanFunctions vulkanFunctions    = {};
         vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
         vulkanFunctions.vkGetDeviceProcAddr   = &vkGetDeviceProcAddr;
@@ -781,6 +782,11 @@ namespace Coconut
         vk::Buffer&          buffer,
         VmaAllocation&       allocation)
     {
+        LOG_INFO("");
+
+
+
+
         // 1. 填 buffer 描述
         vk::BufferCreateInfo bufferInfo{};
         bufferInfo.size        = size;
@@ -801,6 +807,8 @@ namespace Coconut
         }
         buffer = cBuffer;
     }
+
+
     void VulkanRHI::cmdBeginRenderPass(vk::CommandBuffer       command_buffer,
                                        vk::RenderPassBeginInfo& render_pass_begin_info)
     {
@@ -834,7 +842,7 @@ namespace Coconut
     {
         commandBuffer.bindPipeline(bindPoint,pipeline);
     }
-    void VulkanRHI::cmdDescriptorSets(vk::CommandBuffer commandBuffer, vk::PipelineBindPoint bindPoint,
+    void VulkanRHI::cmdBindDescriptorSets(vk::CommandBuffer commandBuffer, vk::PipelineBindPoint bindPoint,
                                       vk::PipelineLayout pipelineLayout, uint32_t firstSet, uint32_t descriptorSetCount,
                                       vk::DescriptorSet descriptorSet)
     {
@@ -856,7 +864,9 @@ namespace Coconut
                                     uint32_t           firstInstance) {
         commandBuffer.drawIndexed(indexCount,instanceCount,firstIndex,vertexOffset,firstInstance);
     }
+
     void VulkanRHI::submitRendering() {
+        LOG_INFO("");
         std::cout<<"m_current_frame_index :"<<m_current_frame_index<<std::endl;
 
 
@@ -949,6 +959,218 @@ namespace Coconut
         memcpy(mappedData, data, size);
         vmaUnmapMemory(m_assets_allocator, allocation);
     }
+    void VulkanRHI::createImageVMA(vk::ImageCreateInfo&    image_create_info,
+                                   VmaMemoryUsage memoryUsage, vk::Image& image,
+                                   VmaAllocation& allocation)
+    {
+        // 转成 C API 结构体
+        VkImageCreateInfo cInfo = image_create_info;
+
+        VmaAllocationCreateInfo allocInfo{};
+        allocInfo.usage = memoryUsage;
+
+        VkImage rawImage;
+        assert(m_assets_allocator != VK_NULL_HANDLE);
+
+        VkResult result = vmaCreateImage(m_assets_allocator, &cInfo, &allocInfo,
+                                         &rawImage, &allocation, nullptr);
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("Failed to create image with VMA");
+
+        image = vk::Image(rawImage);
+
+        assert(image != VK_NULL_HANDLE);  // 调试用
+    }
+
+    void VulkanRHI::transitionImageLayout(vk::Image image, vk::Format format, vk::ImageLayout oldLayout,
+                                          vk::ImageLayout newLayout, uint32_t mipLevels)
+    {
+        // 1️⃣ 创建一次性 command buffer
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.level = vk::CommandBufferLevel::ePrimary;
+        allocInfo.commandPool = m_command_pool; // 你自己的 command pool
+        allocInfo.commandBufferCount = 1;
+
+        vk::CommandBuffer commandBuffer;
+        m_device.allocateCommandBuffers(&allocInfo, &commandBuffer);
+
+        vk::CommandBufferBeginInfo beginInfo{};
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+        commandBuffer.begin(beginInfo);
+
+        // 2️⃣ 设置 image memory barrier
+        vk::ImageMemoryBarrier barrier{};
+        barrier.oldLayout = oldLayout;
+        barrier.newLayout = newLayout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+
+        // 访问掩码和 pipeline stage
+        vk::PipelineStageFlags sourceStage;
+        vk::PipelineStageFlags destinationStage;
+
+        // 判断 image 类型（depth or color）
+        if (newLayout == vk::ImageLayout::eDepthStencilAttachmentOptimal) {
+            barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+            if (hasStencilComponent(format))
+                barrier.subresourceRange.aspectMask |= vk::ImageAspectFlagBits::eStencil;
+        } else {
+            barrier.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        }
+
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = mipLevels;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        // 根据 oldLayout/newLayout 设置访问掩码
+        if (oldLayout == vk::ImageLayout::eUndefined &&
+            newLayout == vk::ImageLayout::eTransferDstOptimal)
+        {
+            barrier.srcAccessMask = {};
+            barrier.dstAccessMask = vk::AccessFlagBits::eTransferWrite;
+
+            sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
+            destinationStage = vk::PipelineStageFlagBits::eTransfer;
+        }
+        else if (oldLayout == vk::ImageLayout::eTransferDstOptimal &&
+                 newLayout == vk::ImageLayout::eShaderReadOnlyOptimal)
+        {
+            barrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
+            barrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
+
+            sourceStage = vk::PipelineStageFlagBits::eTransfer;
+            destinationStage = vk::PipelineStageFlagBits::eFragmentShader;
+        }
+        else
+        {
+            throw std::invalid_argument("unsupported layout transition!");
+        }
+
+        // 3️⃣ 插入 barrier
+        commandBuffer.pipelineBarrier(
+            sourceStage, destinationStage,
+            {},        // dependency flags
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+
+        // 4️⃣ 提交 command buffer 并等待完成
+        commandBuffer.end();
+
+        vk::SubmitInfo submitInfo{};
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
+
+        m_graphics_queue.submit(submitInfo, nullptr);
+        m_graphics_queue.waitIdle();
+
+        m_device.freeCommandBuffers(m_command_pool, commandBuffer);
+    }
+    void VulkanRHI::copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) {
+
+        vk::CommandBuffer commandBuffer = beginSingleTimeCommands();
+
+        vk::BufferImageCopy region{};
+        region.bufferOffset      = 0;
+        region.bufferRowLength   = 0;        // tightly packed
+        region.bufferImageHeight = 0;
+
+        region.imageSubresource.aspectMask     = vk::ImageAspectFlagBits::eColor;
+        region.imageSubresource.mipLevel       = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount     = 1;
+
+        region.imageOffset = vk::Offset3D(0, 0, 0);
+        region.imageExtent = vk::Extent3D{width, height, 1};
+
+        commandBuffer.copyBufferToImage(
+            buffer, image,
+            vk::ImageLayout::eTransferDstOptimal,
+            region);
+
+        endSingleTimeCommands(commandBuffer);
+    }
+    vk::CommandBuffer VulkanRHI::beginSingleTimeCommands() {
+        vk::CommandBufferAllocateInfo allocInfo{};
+        allocInfo.level              = vk::CommandBufferLevel::ePrimary;
+        allocInfo.commandPool        = m_command_pool;
+        allocInfo.commandBufferCount = 1;
+
+        vk::CommandBuffer commandBuffer;
+        m_device.allocateCommandBuffers(&allocInfo, &commandBuffer);
+
+        vk::CommandBufferBeginInfo beginInfo{};
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+        commandBuffer.begin(beginInfo);
+
+        return commandBuffer;
+    }
+    void VulkanRHI::endSingleTimeCommands(vk::CommandBuffer commandBuffer) {
+        commandBuffer.end();
+
+        vk::SubmitInfo submitInfo{};
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers    = &commandBuffer;
+
+        m_graphics_queue.submit(submitInfo, nullptr);
+        m_graphics_queue.waitIdle();
+
+        m_device.freeCommandBuffers(m_command_pool, commandBuffer);
+    }
+    void VulkanRHI::createImageView(vk::Image image, vk::Format format,
+                                    vk::ImageAspectFlags image_aspect_flags,vk::ImageView& image_view)
+    {
+        vk::ImageViewCreateInfo viewInfo{};
+        viewInfo.image                           = image;
+        viewInfo.viewType                        = vk::ImageViewType::e2D;
+        viewInfo.format                          = format;
+        viewInfo.subresourceRange.aspectMask     = image_aspect_flags;
+        viewInfo.subresourceRange.baseMipLevel   = 0;
+        viewInfo.subresourceRange.levelCount     = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount     = 1;
+
+        image_view = m_device.createImageView(viewInfo);
+    }
+
+    void VulkanRHI::createSampler( vk::Sampler &sampler) {
+        vk::SamplerCreateInfo samplerInfo{};
+        samplerInfo.magFilter = vk::Filter::eLinear;
+        samplerInfo.minFilter = vk::Filter::eLinear;
+
+        samplerInfo.addressModeU = vk::SamplerAddressMode::eRepeat;
+        samplerInfo.addressModeV = vk::SamplerAddressMode::eRepeat;
+        samplerInfo.addressModeW = vk::SamplerAddressMode::eRepeat;
+
+        samplerInfo.anisotropyEnable = VK_TRUE;
+
+        vk::PhysicalDeviceProperties properties = m_physical_device.getProperties();
+        samplerInfo.maxAnisotropy               = properties.limits.maxSamplerAnisotropy;
+
+        samplerInfo.borderColor             = vk::BorderColor::eIntOpaqueBlack;
+        samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+        samplerInfo.compareEnable = VK_FALSE;
+        samplerInfo.compareOp     = vk::CompareOp::eAlways;
+
+        //
+        samplerInfo.mipmapMode = vk::SamplerMipmapMode::eNearest;
+        samplerInfo.minLod     = 0.0f;
+        samplerInfo.maxLod     = static_cast<float>(0);
+        samplerInfo.mipLodBias = 0.0f;
+
+        sampler = m_device.createSampler(samplerInfo);
+    }
+
+    void        VulkanRHI::createSampler(vk::Sampler& sampler, vk::SamplerCreateInfo &createInfo) {
+
+        sampler=m_device.createSampler(createInfo);
+    }
+
+
 
 }
     // namespace Coconut

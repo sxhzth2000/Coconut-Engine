@@ -43,7 +43,7 @@ namespace Coconut
        virtual void cmdSetViewport(vk::CommandBuffer commandBuffer, vk::Viewport viewPort)=0;
        virtual void cmdSetScissor(vk::CommandBuffer commandBuffer, vk::Rect2D scissor)=0;
        virtual void cmdBindPipeline(vk::CommandBuffer commandBuffer,vk::PipelineBindPoint bindPoint,vk::Pipeline pipeline)=0;
-       virtual void cmdDescriptorSets(vk::CommandBuffer commandBuffer,vk::PipelineBindPoint bindPoint,vk::PipelineLayout pipelineLayout, uint32_t firstSet,
+       virtual void cmdBindDescriptorSets(vk::CommandBuffer commandBuffer,vk::PipelineBindPoint bindPoint,vk::PipelineLayout pipelineLayout, uint32_t firstSet,
                                       uint32_t descriptorSetCount,vk::DescriptorSet descriptorSet)=0;
 
        virtual void cmdBindVertexBuffers(vk::CommandBuffer commandBuffer,vk::Buffer,vk::DeviceSize offsets) =0;
@@ -85,6 +85,22 @@ namespace Coconut
                                        vk::Framebuffer&                 framebuffer)                = 0;
         virtual void createBufferVMA(vk::DeviceSize size, vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage,
                                      vk::Buffer& buffer, VmaAllocation& allocation) = 0;
+        virtual void createImageVMA(vk::ImageCreateInfo&    image_create_info,
+                                    VmaMemoryUsage memoryUsage, vk::Image& image,
+                                    VmaAllocation& allocation)=0;
+        virtual void transitionImageLayout(vk::Image image, vk::Format format,
+                                           vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
+                                           uint32_t mipLevels)=0;
+        virtual void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height)=0;
+
+        virtual void createImageView(vk::Image image, vk::Format format,
+                                     vk::ImageAspectFlags image_aspect_flags,vk::ImageView& image_view)=0;
+
+        virtual void createSampler( vk::Sampler &sampler)=0;
+        virtual void createSampler( vk::Sampler &sampler,vk::SamplerCreateInfo &info)=0;
+        virtual vk::CommandBuffer beginSingleTimeCommands()=0;
+        virtual void endSingleTimeCommands(vk::CommandBuffer commandBuffer) =0;
+
     };
     inline RHI::~RHI() = default;
 } // namespace Coconut

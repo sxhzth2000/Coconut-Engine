@@ -1,4 +1,4 @@
-
+#pragma  once
 #include "render_pass_base.h"
 #include "render_resource.h"
 #include "vulkan/vulkan.hpp"
@@ -24,18 +24,22 @@ public:
         vk::DescriptorSetLayout layout;
         vk::DescriptorSet       descriptor_set;
     };
+
+
     struct FrameBufferAttachment
     {
-        vk::Image*        image;
-        vk::DeviceMemory* mem;
-        vk::ImageView*    view;
+        vk::Image        image;
+        vk::ImageView    image_view;
         vk::Format       format;
+        VmaAllocation  allocation;
     };
+
+
     struct Framebuffer
     {
         int           width;
         int           height;
-        vk::Framebuffer* framebuffer;
+        vk::Framebuffer framebuffer;
         vk::RenderPass  render_pass;
 
         std::vector<FrameBufferAttachment> attachments;
@@ -47,10 +51,12 @@ public:
     };
 
     void initialize(const RenderPassInitInfo* init_info);
+    void postInitialize() override;
 
     GlobalRenderResource*      m_global_render_resource {nullptr};
 
     virtual void draw();
+
 public:
     std::vector<Descriptor>         m_descriptor_infos;
     std::vector<RenderPipelineBase> m_render_pipelines;

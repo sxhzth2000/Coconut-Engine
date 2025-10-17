@@ -15,9 +15,15 @@ namespace Coconut{
     {
 
     public:
+     // use in RenderPipeline init
     virtual void initialize()=0;
+    virtual void postInitialize();
     virtual void  setCommonInfo(RenderPassCommonInfo pass_common_info);
     virtual void preparePassData()=0;
+
+    ///
+
+
     private:
 
     protected:

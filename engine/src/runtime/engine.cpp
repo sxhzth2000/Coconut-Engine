@@ -3,10 +3,11 @@
 //
 
 #include "engine.h"
+
 #include <iostream>
 
+#include "runtime/core/base/macro.h"
 #include "runtime/function/global/global_context.h"
-
 
 void Coconut::CoconutEngine::startEngine()
 {
@@ -20,9 +21,11 @@ void Coconut::CoconutEngine::run()
 
     while (!window_system->shouldClose())
     {
+        LOG_INFO("Begin tick");
         glfwPollEvents();
         render_system->tick(1);
         const float delta_time=1;
+        LOG_INFO("End tick");
     }
 
 

@@ -5,7 +5,7 @@
 
 namespace Coconut
 {
-     void RenderPipelineBase::forwardRender()
+     void RenderPipelineBase::forwardRender(std::shared_ptr<RHI> rhi)
     {
         LOG_INFO("");
     }

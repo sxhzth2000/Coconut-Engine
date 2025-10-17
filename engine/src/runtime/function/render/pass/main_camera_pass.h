@@ -1,10 +1,9 @@
-//
-// Created by tanhao on 2025/8/29.
-//
+
 
 #pragma once
-#include "main_camera_pass.h"
 #include "runtime/function/render/render_pass.h"
+
+
 
 namespace Coconut
 {
@@ -32,17 +31,18 @@ namespace Coconut
     class MainCameraPass : public RenderPass
     {
        public:
-        void initialize();
-
-           virtual void preparePassData()
-       override;
-
+        // use in RenderPipeline init
+        void         initialize();
+        virtual void preparePassData() override;
 
        public:
-       virtual void draw() override;
-      void drawForward(uint32_t current_swapchain_image_index);
+        virtual void draw() override;
+        void         drawForward(uint32_t current_swapchain_image_index);
+
+
+
        private:
-        ///   set  frame buffer attachments , one
+        ///   set  frame buffer attachments, now is empty
         void setupAttachments();
 
         /// initialize
@@ -53,19 +53,18 @@ namespace Coconut
         void setupFramebufferDescriptorSet();
         void setupSwapchainFramebuffers();
 
-        ///
-
+        //
         void setupMeshDescriptorSet();
+        // tick
 
-        //tick
+        // draw
+        void drawMeshTest();
+       public:
 
+        vk::ImageView* m_directional_light_shadow_depth_image_view;
+        vk::Sampler shadow_map_sampler;
 
-
-
-        //draw
-       void  drawMeshTest();
-
-
+        UBO* shadow_pass_ubo;
 
        private:
         std::vector<vk::Framebuffer> m_swapchain_framebuffers;

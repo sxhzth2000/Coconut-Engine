@@ -23,9 +23,11 @@ namespace{
 
     };
 
-    struct Color
+    struct UBO
     {
-        alignas(16)     glm::vec3 color;
+        alignas(16)     glm::mat4 model;
+        alignas(16)     glm::mat4 view_proj;
+
     };
 
     // mesh

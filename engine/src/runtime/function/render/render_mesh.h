@@ -9,32 +9,30 @@
 namespace Coconut
 {
 
-
+    struct MeshVertex
+    {
         struct Vertex
         {
-             glm::vec3 position;
+              glm::vec3 position;
         };
 
         struct VulkanMeshVertexVaryingEnableBlending
         {
-            alignas(16) glm::vec3 normal;
-            alignas(16) glm::vec3 tangent;
+             glm::vec3 normal;
+             glm::vec3 tangent;
         };
 
         struct VulkanMeshVertexVarying
         {
-            alignas(8) glm::vec2 texcoord;
+             glm::vec2 texcoord;
         };
+    };
 
-        struct VulkanMeshVertexJointBinding
-        {
-            int indices[4];
-            alignas(16) glm::vec4 weights;
-        };
+    struct VulkanMeshVertexJointBinding
+    {
+        int indices[4];
+         glm::vec4 weights;
+    };
 
-
-
-
-
-} // namespace Piccolo
+} // namespace Coconut
 #endif // COCONUT_RENDER_MESH_H

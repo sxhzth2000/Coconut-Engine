@@ -13,7 +13,7 @@ namespace Coconut
     {
     public:
         virtual void initialize(RenderPipelineInitInfo init_info) override final;
-        virtual void forwardRender() override final;
+        virtual void forwardRender(std::shared_ptr<RHI> rhi) override final;
     };
 }
 

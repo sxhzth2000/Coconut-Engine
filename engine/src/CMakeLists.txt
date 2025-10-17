@@ -45,6 +45,8 @@ set(CCN_SOURCE_DIR
         runtime/function/render/render_resource_base.h
         runtime/function/render/render_resource.h
         runtime/function/render/render_resource.cpp
+        runtime/function/render/pass/directional_light_pass.cpp
+        runtime/function/render/pass/directional_light_pass.h
 
 
 )

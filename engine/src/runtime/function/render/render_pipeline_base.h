@@ -24,11 +24,13 @@ namespace Coconut
     public:
         virtual ~RenderPipelineBase(){};
         virtual void initialize(RenderPipelineInitInfo init_info)=0;
-        virtual void forwardRender() ;
+        virtual void forwardRender(std::shared_ptr<RHI> rhi) ;
 
-       protected:
+   protected:
     std::shared_ptr<RHI> m_rhi;
+    std::shared_ptr<RenderPassBase> m_directional_light_pass;
     std::shared_ptr<RenderPassBase> m_main_camera_pass;
+
 
 
 

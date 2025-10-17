@@ -7,6 +7,7 @@
 
 #include "render_pipeline.h"
 #include "render_resource.h"
+
 #include "runtime/core/base/macro.h"
 
 namespace Coconut
@@ -24,7 +25,7 @@ namespace Coconut
         m_rhi = std::make_shared<VulkanRHI>();
         m_render_pipeline = std::make_shared<RenderPipeline>();
         m_render_resource = std::make_shared<RenderResource>();
-
+        /////    m_render_resource->loadStaticMesh("engine/asset/marry/Marry.obj");
 
         m_rhi->initialize(rhi_init_info);
 
@@ -38,19 +39,13 @@ namespace Coconut
         m_render_pipeline->initialize(pipeline_init_info);
 
 
-
-
-
-
     }
 
     void RenderSystem::tick(float delta_time) {
-
-
         // prepare render command context
         m_rhi->prepareContext();
 
-        m_render_pipeline->forwardRender();
+        m_render_pipeline->forwardRender(m_rhi);
 
         // update per-frame buffer
         /// camera  lighting

@@ -36,7 +36,7 @@ namespace Coconut
         virtual void cmdSetScissor(vk::CommandBuffer commandBuffer, vk::Rect2D scissor) override;
         virtual void cmdBindPipeline(vk::CommandBuffer commandBuffer, vk::PipelineBindPoint bindPoint,
                                      vk::Pipeline pipeline) override;
-        virtual void cmdDescriptorSets(vk::CommandBuffer commandBuffer, vk::PipelineBindPoint bindPoint,
+        virtual void cmdBindDescriptorSets(vk::CommandBuffer commandBuffer, vk::PipelineBindPoint bindPoint,
                                        vk::PipelineLayout pipelineLayout, uint32_t firstSet,
                                        uint32_t descriptorSetCount, vk::DescriptorSet descriptorSet) override;
 
@@ -122,6 +122,36 @@ namespace Coconut
                                vk::Framebuffer&                 framebuffer) override;
         void VulkanRHI::createBufferVMA(vk::DeviceSize size, vk::BufferUsageFlags usage, VmaMemoryUsage memoryUsage,
                                         vk::Buffer& buffer, VmaAllocation& allocation);
+         void createImageVMA(vk::ImageCreateInfo&    image_create_info,
+                            VmaMemoryUsage memoryUsage, vk::Image& image,
+                            VmaAllocation& allocation) override;
+        void transitionImageLayout(vk::Image image, vk::Format format,
+                                    vk::ImageLayout oldLayout, vk::ImageLayout newLayout,
+                                    uint32_t mipLevels)override;
+        void copyBufferToImage(vk::Buffer buffer, vk::Image image, uint32_t width, uint32_t height) override;
+        virtual vk::CommandBuffer beginSingleTimeCommands()override;
+        virtual void endSingleTimeCommands(vk::CommandBuffer commandBuffer) override;
+
+        virtual void createImageView(vk::Image image, vk::Format format,
+                                     vk::ImageAspectFlags image_aspect_flags,vk::ImageView& image_view)override;
+
+        virtual void createSampler( vk::Sampler &sampler,vk::SamplerCreateInfo &createInfo) override ;
+
+        virtual void createSampler( vk::Sampler &sampler)override;
+
+
+
+
+
+
+        // helper 判断 stencil
+        bool VulkanRHI::hasStencilComponent(vk::Format format) {
+            return format == vk::Format::eD32SfloatS8Uint || format == vk::Format::eD24UnormS8Uint;
+        }
+
+
+
+
 
         // semaphores
 

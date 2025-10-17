@@ -7,4 +7,6 @@ namespace Coconut
         m_rhi=pass_common_info.rhi;
         m_render_resource = pass_common_info.render_resource;
     }
+
+    void RenderPassBase::postInitialize() {}
 }
