@@ -38,11 +38,6 @@ namespace Coconut
         m_main_camera_pass->initialize();
         m_main_camera_pass->preparePassData();
 
-
-
-
-
-
     }
     void Coconut::RenderPipeline::forwardRender(std::shared_ptr<RHI> rhi)
     {
@@ -54,9 +49,7 @@ namespace Coconut
         auto resutl = m_main_camera_pass.get();
         auto shadowpass =m_directional_light_pass.get();
 
-
         dynamic_cast<MainCameraPass*>(resutl)->draw();
-
 
     }
 }

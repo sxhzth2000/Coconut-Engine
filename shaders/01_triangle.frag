@@ -1,10 +1,12 @@
 #version 450
-
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec3 fragWorldPos;
 layout(location = 3) in vec3 fragNormal;
+
 layout(location = 0) out vec4 outColor;
+
+
 
 layout(binding = 1) uniform sampler2D texSampler;
 
@@ -16,11 +18,6 @@ layout(binding = 3) uniform UniformBufferObject_shadow {
     mat4 model;
     mat4 view_proj;
 } ubo;
-
-
-
-
-
 
 void main() {
     // 光源空间  用的
@@ -37,21 +34,14 @@ void main() {
     light_space_pos.y >= -1.0 && light_space_pos.y <= 1.0 &&
     light_space_pos.z >= 0.0  && light_space_pos.z <= 1.0; // Vulkan NDC z
 
-
     vec2 uv = shadowCoord.xy * 0.5 + 0.5;   //xy 映射  [-1,1]->[0,1]
     float depth = shadowCoord.z;  //保持原来深度
     //
     float not_in_shadow=1;
 
-
-
-
-
     if (inside_light_frustum) {
-
         //片元深度是否小于 阴影贴图深度， 1 为是，0 为否
         // 返回一代表深度 较小，说明不再阴影中，光照贡献就大
-
         // 深度比较采样，自动判断是否在阴影中
         // 深度偏移可以防止 self-shadow
         not_in_shadow = texture(shadow_map_Sampler, vec3(uv, depth - 0.015));

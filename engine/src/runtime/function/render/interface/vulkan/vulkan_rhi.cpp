@@ -722,6 +722,7 @@ namespace Coconut
         DescriptorSetLayout = m_device.createDescriptorSetLayout(layoutInfo);
         return true;
     }
+
     bool VulkanRHI::createPipelineLayout(
         const vk::PipelineLayoutCreateInfo* pPipelineLayoutInfo,
         vk::PipelineLayout&                 pPipelineLayout)
